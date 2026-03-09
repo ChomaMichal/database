@@ -1,0 +1,10 @@
+todo
+1. storage engine that will manage the disk reading insertions and searching
+2. server that can return the asked database
+3. SQL parser??
+4. cache for searching
+
+
+important concepts B-tree spesific version of binary tree read up on this later
+
+stuff might not fit in ram you need to do operation on disk
