@@ -74,11 +74,12 @@ fn get_table(name: &String) -> Result<File, std::io::Error> {
     OpenOptions::new().write(true).read(true).open(name)
 }
 
-pub fn add_column(name: &String, data: Row) -> Result<(), String> {
+pub fn add_column(name: &String, data: Row) -> Result<(), ()> {
     let mut file = match get_table(name) {
         Ok(val) => val,
-        Err(e) => return Err(e.to_string()),
+        Err(e) => return Err(()),
     };
+    return Err(());
 }
 
 pub fn create_table(name: &String, columns: &Vec<String>) -> Result<(), String> {
