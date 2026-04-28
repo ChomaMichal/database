@@ -1,9 +1,9 @@
 use std::mem::swap;
 
-pub const ORDER: usize = 5;
-pub const ELEMENTS_LEN: usize = ORDER;
-pub const POINTERS_LEN: usize = ORDER + 1;
-pub const MIDLE: usize = ORDER / 2;
+const ORDER: usize = 5;
+const ELEMENTS_LEN: usize = ORDER;
+const POINTERS_LEN: usize = ORDER + 1;
+const MIDLE: usize = ORDER / 2;
 
 // t has to be key value pair for this to make sence
 #[derive(Debug)]
@@ -19,7 +19,7 @@ struct OverFlow<T: PartialOrd> {
 }
 
 impl<T: PartialOrd + PartialEq + std::fmt::Display + std::fmt::Debug> OverFlow<T> {
-    pub fn new(
+    fn new(
         element: Option<Box<T>>,
         left: Option<Box<BTree<T>>>,
         right: Option<Box<BTree<T>>>,
@@ -95,47 +95,7 @@ impl<T: PartialOrd + PartialEq + std::fmt::Display + std::fmt::Debug> BTree<T> {
             pointers: [const { None }; ORDER + 1],
         }
     }
-    pub fn find(&self, element: T) -> Option<&T> {
-        // println!("27:searcing for == {}", element);
-        for (i, el) in self.elements.iter().enumerate() {
-            match el {
-                None => {
-                    if i != ELEMENTS_LEN - 1 {
-                        match self.pointers[i].as_ref() {
-                            None => return None,
-                            Some(next) => {
-                                return next.find(element);
-                            }
-                        }
-                    }
-                }
-                Some(e) => {
-                    //println!("  31:element in find == {}", e);
-                    // println!("  33:comparason {} == {}", element, e);
 
-                    if **e == element {
-                        return Some(&**e);
-                    }
-
-                    if **e < element {
-                        if let Some(child) = self.pointers[i].as_ref() {
-                            return child.find(element);
-                        } else {
-                            return None;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    }
-
-    fn _is_leaf_full(&self) -> bool {
-        match self.elements[ELEMENTS_LEN - 1] {
-            None => return false,
-            Some(_) => return true,
-        }
-    }
     pub fn insert(&mut self, element: T) {
         let tmp = self._insert(element);
         match tmp {
@@ -150,6 +110,46 @@ impl<T: PartialOrd + PartialEq + std::fmt::Display + std::fmt::Debug> BTree<T> {
                 return;
             }
             None => return,
+        }
+    }
+
+    pub fn find(&self, element: T) -> Option<&T> {
+        let len = self.elements.iter().position(|e| e == &None);
+        let len = match len {
+            Some(l) => l,
+            None => ELEMENTS_LEN,
+        };
+        let mut top_pos = len;
+        let mut bot_pos = 0;
+
+        loop {
+            let pos = bot_pos + (top_pos - bot_pos) / 2;
+            if pos == bot_pos && pos == top_pos {
+                match self.pointers[pos].as_ref() {
+                    Some(child) => {
+                        return child.find(element);
+                    }
+                    None => {
+                        if **self.elements[pos].as_ref().unwrap() == element {
+                            return Some(self.elements[pos].as_ref().unwrap());
+                        }
+                        return None;
+                    }
+                }
+            } else if **self.elements[pos].as_ref().unwrap() < element {
+                top_pos = top_pos - (top_pos - bot_pos) / 2;
+            } else if **self.elements[pos].as_ref().unwrap() > element {
+                bot_pos = bot_pos + (top_pos - bot_pos) / 2;
+            } else if **self.elements[pos].as_ref().unwrap() == element {
+                return Some(self.elements[pos].as_ref().unwrap());
+            }
+        }
+    }
+
+    fn _is_leaf_full(&self) -> bool {
+        match self.elements[ELEMENTS_LEN - 1] {
+            None => return false,
+            Some(_) => return true,
         }
     }
 
@@ -224,12 +224,10 @@ impl<T: PartialOrd + PartialEq + std::fmt::Display + std::fmt::Debug> BTree<T> {
                                 match tmp {
                                     //do the splitting here
                                     true => {
-                                        println!("I am spliting");
                                         return Some(self._split_node());
                                     }
 
                                     false => {
-                                        println!("I am inserting");
                                         self.elements[i..].rotate_right(1);
                                         self.elements[i] = Some(Box::new(element));
                                         self.pointers[i..].rotate_right(1);
@@ -261,6 +259,7 @@ impl<T: PartialOrd + PartialEq + std::fmt::Display + std::fmt::Debug> BTree<T> {
         tmp.right.as_mut().unwrap()._insert(element);
         return Some(tmp);
     }
+
     //check if the node is full before calling
     fn _insert_overflow_at_index(&mut self, i: usize, mut extra: OverFlow<T>) {
         self.elements[i..].rotate_right(1);
