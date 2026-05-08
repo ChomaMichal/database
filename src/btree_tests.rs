@@ -15,7 +15,7 @@ fn btree_insert_and_find_small_set() {
 }
 
 #[test]
-fn btree_insert_and_find_larger_set() {
+fn btree_insert_and_find_eleven_values() {
     let mut btree = BTree::<u32>::new();
 
     for value in 0..11 {
