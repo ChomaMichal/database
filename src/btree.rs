@@ -234,14 +234,16 @@ where
                 },
                 Some(el) => {
                     if **el == element {
-                        println!("Duplicates");
+                        println!("Duplicates"); //handle later
                     } else if element < **el {
                         match self.pointers[i].as_mut() {
                             None => {
                                 let tmp = self._is_leaf_full();
                                 match tmp {
                                     true => {
-                                        return Some(self._split_node());
+                                        let mut extra = self._split_node();
+                                        extra.left.as_mut().unwrap()._insert(element);
+                                        return Some(extra);
                                     }
                                     false => {
                                         self.elements[i..].rotate_right(1);
@@ -348,4 +350,3 @@ where
         write!(f, "{out}")
     }
 }
-
