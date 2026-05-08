@@ -22,7 +22,7 @@ pub const PAGE: usize = 8096;
 * there can be multiple cells per page
 *
 * figure out resizing of cells
-*]
+*
 * how to implement btree
 * use the first page for  metadata
 * figure out how to handle collum insertions without copying the whole table or how it might be OK

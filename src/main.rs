@@ -5,19 +5,26 @@
 //use std::os::unix::fs::FileExt;
 pub mod btree;
 use btree::BTree;
+use rand::RngExt;
+pub mod table;
 
 fn main() {
-    //    let mut rng = rand::rng();
+    let mut rng = rand::rng();
     let mut btree = BTree::<u32>::new();
     let mut arr: Vec<u32> = Vec::<u32>::new();
-    for i in 0..11 {
-        let tmp: u32 = i; // rng.random();
+    for i in 0..100000 {
+        let tmp: u32 = rng.random();
 
         arr.push(tmp);
         btree.insert(tmp);
-        println!("{:?}", btree);
-        println!("===============");
+        // println!("==========element{i}==============");
+        // println!("{}", btree);
+        // println!("{:?}", btree);
+        // println!("===============");
     }
+    println!("{}", btree);
+    // let tmp = btree.find(6);
+    // println!("return {:?}", tmp);
     // println!("{:?}", btree.elements);
     // println!("{:?}", btree.pointers);
     for item in arr.iter_mut() {
@@ -25,10 +32,15 @@ fn main() {
         match res {
             Some(el) => {
                 if el != item {
-                    eprintln!("Found incorrect number {}  != {}", item, el);
+                    println!("Found incorrect number {}  != {} !!", item, el);
+                    panic!();
                 }
+                println!("Found the numbner {el}");
             }
-            None => eprintln!("Number {} not found", item),
+            None => {
+                println!("Number {} not found !!", item);
+                panic!()
+            }
         }
     }
 }
