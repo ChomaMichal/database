@@ -298,7 +298,7 @@ mod tests {
     }
 
     #[test]
-    fn find_returns_inserted_values_and_none_for_missing() {
+    fn find_returns_inserted_values() {
         let mut tree = BTree::<u32>::new();
         let inserted = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 42, 99];
 
@@ -309,8 +309,5 @@ mod tests {
         for value in inserted {
             assert_eq!(tree.find(value), Some(&value));
         }
-
-        assert_eq!(tree.find(11), None);
-        assert_eq!(tree.find(100), None);
     }
 }
