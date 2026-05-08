@@ -14,15 +14,14 @@ fn main() {
     let mut rng = rand::rng();
     let mut btree = BTree::<u32>::new();
     let mut arr: Vec<u32> = Vec::<u32>::new();
-    for i in 0..100000 {
-        let tmp: u32 = rng.random();
+    for i in (0..10).rev() {
+        // let tmp: u32 = rng.random();
 
+        let tmp = i;
         arr.push(tmp);
         btree.insert(tmp);
-        // println!("==========element{i}==============");
-        // println!("{}", btree);
-        // println!("{:?}", btree);
-        // println!("===============");
+        println!("==========element{i}==============");
+        println!("{}", btree);
     }
     println!("{}", btree);
     // let tmp = btree.find(6);
