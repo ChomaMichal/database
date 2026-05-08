@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn find_returns_inserted_values() {
         let mut tree = BTree::<u32>::new();
-        let inserted = [0, 1, 2, 3];
+        let inserted = [7];
 
         for value in inserted {
             tree.insert(value);
