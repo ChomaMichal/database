@@ -274,7 +274,7 @@ impl<T: PartialOrd + PartialEq + std::fmt::Display + std::fmt::Debug> BTree<T> {
 mod tests {
     use super::BTree;
 
-    fn count_elements(tree: &BTree<u32>) -> usize {
+    fn count_elements<T: PartialOrd>(tree: &BTree<T>) -> usize {
         let current = tree.elements.iter().filter(|e| e.is_some()).count();
         current
             + tree
@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn find_returns_inserted_values() {
         let mut tree = BTree::<u32>::new();
-        let inserted = [7];
+        let inserted = [1, 3, 5];
 
         for value in inserted {
             tree.insert(value);
