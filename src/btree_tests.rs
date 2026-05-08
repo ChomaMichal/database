@@ -1,5 +1,6 @@
 use crate::btree::BTree;
 
+/// Asserts that each value exists in the tree and is returned by `find`.
 fn assert_all_present(tree: &BTree<u32>, values: &[u32]) {
     for value in values {
         assert_eq!(tree.find(*value), Some(value));
