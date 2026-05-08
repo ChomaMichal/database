@@ -4,6 +4,8 @@
 //use std::fs::OpenOptions;
 //use std::os::unix::fs::FileExt;
 pub mod btree;
+#[cfg(test)]
+mod btree_tests;
 use btree::BTree;
 
 fn main() {
