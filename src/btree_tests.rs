@@ -1,4 +1,6 @@
 use crate::btree::BTree;
+use rand::rngs::StdRng;
+use rand::{RngExt, SeedableRng, rng};
 
 /// Asserts that each value exists in the tree and is returned by `find`.
 fn assert_all_present(tree: &BTree<u32>, values: &[u32]) {
@@ -53,6 +55,51 @@ fn btree_insert_non_sequential_values_and_find_all() {
     }
 
     assert_all_present(&btree, &values);
+}
+
+#[test]
+fn btree_insert_random_generated_values_seed_1() {
+    let mut rand = StdRng::seed_from_u64(1);
+
+    let mut btree = BTree::<u32>::new();
+    let mut array = Vec::<u32>::new();
+
+    for _ in 0..1000 {
+        let tmp = rand.random();
+        btree.insert(tmp);
+        array.push(tmp);
+    }
+    assert_all_present(&btree, &array);
+}
+
+#[test]
+fn btree_insert_random_generated_values_seed_42() {
+    let mut rand = StdRng::seed_from_u64(42);
+
+    let mut btree = BTree::<u32>::new();
+    let mut array = Vec::<u32>::new();
+
+    for _ in 0..1000 {
+        let tmp = rand.random();
+        btree.insert(tmp);
+        array.push(tmp);
+    }
+    assert_all_present(&btree, &array);
+}
+
+#[test]
+fn btree_insert_random_generated_values_seed_2897319() {
+    let mut rand = StdRng::seed_from_u64(2897319);
+
+    let mut btree = BTree::<u32>::new();
+    let mut array = Vec::<u32>::new();
+
+    for _ in 0..1000 {
+        let tmp = rand.random();
+        btree.insert(tmp);
+        array.push(tmp);
+    }
+    assert_all_present(&btree, &array);
 }
 
 #[test]
