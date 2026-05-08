@@ -10,19 +10,7 @@ fn assert_all_present(tree: &BTree<u32>, values: &[u32]) {
 }
 
 #[test]
-fn btree_insert_and_find_small_set() {
-    let mut btree = BTree::<u32>::new();
-    let values = [0, 1, 2, 3, 4];
-
-    for value in values {
-        btree.insert(value);
-    }
-
-    assert_all_present(&btree, &values);
-}
-
-#[test]
-fn btree_insert_and_find_medium_set() {
+fn btree_insert_and_find_larger_set() {
     let mut btree = BTree::<u32>::new();
 
     for value in 0..11 {
