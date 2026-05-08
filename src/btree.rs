@@ -269,3 +269,48 @@ impl<T: PartialOrd + PartialEq + std::fmt::Display + std::fmt::Debug> BTree<T> {
         swap(&mut self.pointers[i], &mut extra.left);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::BTree;
+
+    fn count_elements(tree: &BTree<u32>) -> usize {
+        let current = tree.elements.iter().filter(|e| e.is_some()).count();
+        current
+            + tree
+                .pointers
+                .iter()
+                .filter_map(|p| p.as_deref())
+                .map(count_elements)
+                .sum::<usize>()
+    }
+
+    #[test]
+    fn insertion_stores_all_unique_values() {
+        let mut tree = BTree::<u32>::new();
+        let input = [8, 3, 10, 1, 6, 14, 4, 7, 13];
+
+        for value in input {
+            tree.insert(value);
+        }
+
+        assert_eq!(count_elements(&tree), input.len());
+    }
+
+    #[test]
+    fn find_returns_inserted_values_and_none_for_missing() {
+        let mut tree = BTree::<u32>::new();
+        let inserted = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 42, 99];
+
+        for value in inserted {
+            tree.insert(value);
+        }
+
+        for value in inserted {
+            assert_eq!(tree.find(value), Some(&value));
+        }
+
+        assert_eq!(tree.find(11), None);
+        assert_eq!(tree.find(100), None);
+    }
+}
