@@ -2,28 +2,38 @@
 //use std::env;
 //use std::fs::File;
 //use std::fs::OpenOptions;
+//
 //use std::os::unix::fs::FileExt;
+//
+
+use rand::rngs::StdRng;
+use rand::{RngExt, SeedableRng, rng};
 pub mod btree;
 #[cfg(test)]
 mod btree_tests;
 use btree::BTree;
-use rand::RngExt;
 pub mod table;
 
 fn main() {
-    let mut rng = rand::rng();
+    let mut rand = StdRng::seed_from_u64(1);
+    // let mut rng = rand::rng();
     let mut btree = BTree::<u32>::new();
     let mut arr: Vec<u32> = Vec::<u32>::new();
-    for i in (0..10).rev() {
-        // let tmp: u32 = rng.random();
+    for i in (0..71) {
+        let tmp: u32 = rand.random();
+        let tmp = tmp % 1000;
 
-        let tmp = i;
+        // let tmp = i;
+
         arr.push(tmp);
+        if tmp == 656 {
+            println!("stop here");
+        }
         btree.insert(tmp);
-        println!("==========element{i}==============");
+        println!("==========element{tmp}==============");
         println!("{}", btree);
     }
-    println!("{}", btree);
+    // println!("{}", btree);
     // let tmp = btree.find(6);
     // println!("return {:?}", tmp);
     // println!("{:?}", btree.elements);
