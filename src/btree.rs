@@ -242,10 +242,20 @@ where
                                 match tmp {
                                     true => {
                                         let mut extra = self._split_node();
-                                        extra.left.as_mut().unwrap()._insert(element);
+                                        println!("Element == {element} 245");
+                                        println!(
+                                            "extra.element == {}",
+                                            extra.element.as_ref().unwrap()
+                                        );
+                                        if **extra.element.as_ref().unwrap() > element {
+                                            extra.left.as_mut().unwrap()._insert(element);
+                                        } else {
+                                            extra.right.as_mut().unwrap()._insert(element);
+                                        }
                                         return Some(extra);
                                     }
                                     false => {
+                                        println!("Element == {element}  258");
                                         self.elements[i..].rotate_right(1);
                                         self.elements[i] = Some(Box::new(element));
                                         self.pointers[i..].rotate_right(1);
@@ -258,20 +268,28 @@ where
                                     Some(extra) => match self._is_leaf_full() {
                                         false => {
                                             self._insert_overflow_at_index(i, extra);
+                                            return None;
                                         }
-                                        true => {}
+                                        true => {
+                                            let mut n_extra = self._split_node();
+                                            n_extra
+                                                .right
+                                                .as_mut()
+                                                .unwrap()
+                                                ._insert_overflow_at_index(i, extra);
+                                            return Some(n_extra);
+                                        }
                                     },
                                     None => return None,
                                 };
-
-                                return None;
                             }
                         }
                     }
                 }
             };
         }
-        match self.pointers[POINTERS_LEN - 1].as_mut() {
+        // println!("element == {element} 285");
+        match self.pointers[self._len()].as_mut() {
             Some(el) => match el._insert(element) {
                 Some(extra) => match self._is_leaf_full() {
                     true => {
@@ -296,7 +314,11 @@ where
             None => {
                 let mut tmp = self._split_node();
                 tmp.right.as_mut().unwrap()._insert(element);
-                return Some(tmp);
+                println!("============line308================");
+                println!("{self}");
+                println!("============line308================");
+                self._insert_overflow_at_index(0, tmp);
+                return None;
             }
         }
     }
