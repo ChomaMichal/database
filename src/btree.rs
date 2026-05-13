@@ -127,43 +127,44 @@ where
         if len == 0 {
             return None;
         }
-        let mut top_pos = len - 1;
-        let mut bot_pos = 0;
-        let mut prev = ORDER + 1;
-        loop {
-            let pos = bot_pos + (top_pos - bot_pos) / 2;
-            if **self.elements[pos].as_ref().unwrap() == element {
-                return Some(self.elements[pos].as_ref().unwrap());
-            }
-            if bot_pos == top_pos {
-                if **self.elements[len - 1].as_ref().unwrap() < element {
-                    top_pos += 1;
-                }
-                match self.pointers[top_pos].as_ref() {
-                    Some(pointer) => return pointer.find(element),
-                    None => return None,
-                }
-            }
 
-            if **self.elements[pos].as_ref().unwrap() < element {
-                if bot_pos == 0 && top_pos == 1 {
-                    bot_pos = 1;
-                } else {
-                    bot_pos = pos;
-                }
-            } else if **self.elements[pos].as_ref().unwrap() > element {
-                top_pos = pos;
+        let idx = self.find_index(&element);
+        if idx < len {
+            let v = self.elements[idx].as_ref().unwrap();
+            if **v == element {
+                return Some(v);
             }
-            if pos == prev {
-                if pos == bot_pos {
-                    bot_pos += 1;
-                }
-                if pos == top_pos {
-                    top_pos -= 1;
-                }
-            }
-            prev = pos;
         }
+
+        match self.pointers[idx].as_ref() {
+            Some(ptr) => ptr.find(element),
+            None => None,
+        }
+    }
+
+    // Return the index of the element if present, or the child/index
+    // where it should be inserted (first index greater than element).
+    fn find_index(&self, element: &T) -> usize {
+        let len = self._len();
+        if len == 0 {
+            return 0;
+        }
+
+        let mut lo: usize = 0;
+        let mut hi: usize = len;
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            let v = self.elements[mid].as_ref().unwrap();
+            if **v == *element {
+                return mid;
+            }
+            if **v < *element {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        lo
     }
 
     fn _is_leaf_full(&self) -> bool {
@@ -176,160 +177,95 @@ where
     fn _split_node(&mut self) -> OverFlow<T> {
         let mut left: Box<BTree<T>> = Box::new(BTree::<T>::new());
         let mut right: Box<BTree<T>> = Box::new(BTree::<T>::new());
-        match ORDER % 2 {
-            1 => {
-                arr_swap(&mut self.elements, &mut left.elements, MIDLE);
-                arr_swap(&mut self.elements[MIDLE + 1..], &mut right.elements, MIDLE);
-                arr_swap(&mut self.pointers, &mut left.pointers, MIDLE + 1);
-                arr_swap(&mut self.pointers[MIDLE + 1..], &mut right.pointers, MIDLE);
-            }
-            0 => {
-                arr_swap(&mut self.elements, &mut left.elements, MIDLE - 1);
-                arr_swap(
-                    &mut self.elements[MIDLE + 1..],
-                    &mut right.elements,
-                    ELEMENTS_LEN - MIDLE - 1,
-                );
-                arr_swap(&mut self.pointers, &mut left.pointers, MIDLE);
-                arr_swap(
-                    &mut self.pointers[(MIDLE) + 1..],
-                    &mut right.pointers,
-                    POINTERS_LEN - MIDLE - 1,
-                );
-            }
-            _ => {}
+
+        let median = MIDLE;
+        let left_count = median;
+        let right_count = ELEMENTS_LEN - median - 1;
+
+        for i in 0..left_count {
+            left.elements[i] = self.elements[i].take();
         }
-        let mut tmp = None;
-        swap(&mut self.elements[MIDLE], &mut tmp);
+
+        for i in 0..right_count {
+            right.elements[i] = self.elements[median + 1 + i].take();
+        }
+
+        for i in 0..=left_count {
+            left.pointers[i] = self.pointers[i].take();
+        }
+
+        for i in 0..=right_count {
+            right.pointers[i] = self.pointers[median + 1 + i].take();
+        }
+
+        let tmp = self.elements[median].take();
         OverFlow::new(tmp, Some(left), Some(right))
     }
 
     fn _insert(&mut self, element: T) -> Option<OverFlow<T>> {
-        for i in 0..ELEMENTS_LEN {
-            match self.elements[i].as_mut() {
-                None => match self.pointers[i].as_mut() {
-                    Some(el) => match el._insert(element) {
-                        Some(extra) => match self._is_leaf_full() {
-                            true => {
-                                let mut n_extra = self._split_node();
-                                n_extra
-                                    .right
-                                    .as_mut()
-                                    .unwrap()
-                                    ._insert_overflow_at_index(i, extra);
-                                return Some(n_extra);
-                            }
-                            false => {
-                                self._insert_overflow_at_index(i, extra);
-                                return None;
-                            }
-                        },
-                        None => return None,
-                    },
+        let idx = self.find_index(&element);
 
-                    None => {
-                        self.elements[i] = Some(Box::new(element));
-                        return None;
-                    }
-                },
-                Some(el) => {
-                    if **el == element {
-                        println!("Duplicates"); //handle later
-                    } else if element < **el {
-                        match self.pointers[i].as_mut() {
-                            None => {
-                                let tmp = self._is_leaf_full();
-                                match tmp {
-                                    true => {
-                                        let mut extra = self._split_node();
-                                        println!("Element == {element} 245");
-                                        println!(
-                                            "extra.element == {}",
-                                            extra.element.as_ref().unwrap()
-                                        );
-                                        if **extra.element.as_ref().unwrap() > element {
-                                            extra.left.as_mut().unwrap()._insert(element);
-                                        } else {
-                                            extra.right.as_mut().unwrap()._insert(element);
-                                        }
-                                        return Some(extra);
-                                    }
-                                    false => {
-                                        println!("Element == {element}  258");
-                                        self.elements[i..].rotate_right(1);
-                                        self.elements[i] = Some(Box::new(element));
-                                        self.pointers[i..].rotate_right(1);
-                                        return None;
-                                    }
-                                }
-                            }
-                            Some(ptr) => {
-                                match ptr._insert(element) {
-                                    Some(extra) => match self._is_leaf_full() {
-                                        false => {
-                                            self._insert_overflow_at_index(i, extra);
-                                            return None;
-                                        }
-                                        true => {
-                                            let mut n_extra = self._split_node();
-                                            n_extra
-                                                .right
-                                                .as_mut()
-                                                .unwrap()
-                                                ._insert_overflow_at_index(i, extra);
-                                            return Some(n_extra);
-                                        }
-                                    },
-                                    None => return None,
-                                };
-                            }
+        match self.pointers[idx].as_mut() {
+            Some(child) => match child._insert(element) {
+                Some(extra) => {
+                    if self._is_leaf_full() {
+                        let mut n_extra = self._split_node();
+                        if idx <= MIDLE {
+                            n_extra
+                                .left
+                                .as_mut()
+                                .unwrap()
+                                ._insert_overflow_at_index(idx, extra);
+                        } else {
+                            let right_index = idx.saturating_sub(MIDLE + 1);
+                            n_extra
+                                .right
+                                .as_mut()
+                                .unwrap()
+                                ._insert_overflow_at_index(right_index, extra);
                         }
+                        return Some(n_extra);
+                    } else {
+                        self._insert_overflow_at_index(idx, extra);
+                        return None;
                     }
                 }
-            };
-        }
-        // println!("element == {element} 285");
-        match self.pointers[self._len()].as_mut() {
-            Some(el) => match el._insert(element) {
-                Some(extra) => match self._is_leaf_full() {
-                    true => {
-                        let mut n_extra = self._split_node();
-                        let index = extra.right.as_ref().unwrap()._len() - 1;
-                        n_extra
-                            .right
-                            .as_mut()
-                            .unwrap()
-                            .as_mut()
-                            ._insert_overflow_at_index(index, extra);
-                        return Some(n_extra);
-                    }
-                    false => {
-                        let index = extra.right.as_ref().unwrap()._len() - 1;
-                        self._insert_overflow_at_index(index, extra);
-                        return None;
-                    }
-                },
                 None => return None,
             },
             None => {
-                let mut tmp = self._split_node();
-                tmp.right.as_mut().unwrap()._insert(element);
-                println!("============line308================");
-                println!("{self}");
-                println!("============line308================");
-                self._insert_overflow_at_index(0, tmp);
-                return None;
+                // leaf insertion
+                if self._is_leaf_full() {
+                    let mut extra = self._split_node();
+                    if **extra.element.as_ref().unwrap() > element {
+                        extra.left.as_mut().unwrap()._insert(element);
+                    } else {
+                        extra.right.as_mut().unwrap()._insert(element);
+                    }
+                    return Some(extra);
+                } else {
+                    self.elements[idx..].rotate_right(1);
+                    self.elements[idx] = Some(Box::new(element));
+                    self.pointers[idx..].rotate_right(1);
+                    return None;
+                }
             }
         }
     }
 
     //check if the node is full before calling
     fn _insert_overflow_at_index(&mut self, i: usize, mut extra: OverFlow<T>) {
+        // make room for the new element
         self.elements[i..].rotate_right(1);
         swap(&mut self.elements[i], &mut extra.element);
-        swap(&mut self.pointers[i], &mut extra.right);
+
+        // make room for the two new child pointers and place them
         self.pointers[i..].rotate_right(1);
+        // after rotation the slot at i is free
         swap(&mut self.pointers[i], &mut extra.left);
+        // place right child into i+1
+        if i + 1 < POINTERS_LEN {
+            swap(&mut self.pointers[i + 1], &mut extra.right);
+        }
     }
 
     fn fmt_pretty_with_indent(&self, depth: usize, out: &mut String) {
