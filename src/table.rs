@@ -4,6 +4,7 @@ use std::io::prelude::*;
 use std::path::Path;
 
 pub const PAGE: usize = 8096;
+const FIRST_DATA_PAGE: u64 = 1;
 /* create table system.
 * one file is one table
 *
@@ -31,7 +32,7 @@ pub const PAGE: usize = 8096;
 #[derive(Debug, Clone)]
 pub struct Table {
     name: String,      //to find the file in question
-    rows: Vec<String>, // names of the columns index is important because cells use this indexing
+    columns: Vec<String>, // names of the columns index is important because cells use this indexing
     //this will contain the b tree for searching elements
     free_page: u64,
 }
@@ -124,7 +125,7 @@ pub fn open_table(name: &str) -> Result<Table, String> {
     let metadata_end = buffer.iter().position(|&byte| byte == 0).unwrap_or(PAGE);
     let metadata = &buffer[..metadata_end];
 
-    let mut rows = Vec::new();
+    let mut columns = Vec::new();
     for line in metadata.split(|&byte| byte == b'\n') {
         if line.is_empty() {
             continue;
@@ -132,13 +133,13 @@ pub fn open_table(name: &str) -> Result<Table, String> {
         let value = std::str::from_utf8(line)
             .map_err(|err| err.to_string())?
             .to_string();
-        rows.push(value);
+        columns.push(value);
     }
 
     Ok(Table {
         name: name.to_string(),
-        rows,
-        free_page: 1,
+        columns,
+        free_page: FIRST_DATA_PAGE,
     })
 }
 
@@ -151,10 +152,10 @@ impl Table {
         output.push_str(&format!("free_page: {}\n", self.free_page));
         output.push_str("columns:\n");
 
-        if self.rows.is_empty() {
+        if self.columns.is_empty() {
             output.push_str("  (none)\n");
         } else {
-            for (idx, column) in self.rows.iter().enumerate() {
+            for (idx, column) in self.columns.iter().enumerate() {
                 output.push_str(&format!("  {}. {}\n", idx + 1, column));
             }
         }
