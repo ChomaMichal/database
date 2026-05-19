@@ -1,8 +1,6 @@
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io;
 use std::io::prelude::*;
-use std::os::unix::fs::FileExt;
 use std::path::Path;
 
 pub const PAGE: usize = 8096;
@@ -31,7 +29,7 @@ pub const PAGE: usize = 8096;
 //might change later
 
 #[derive(Debug, Clone)]
-struct Table {
+pub struct Table {
     name: String,      //to find the file in question
     rows: Vec<String>, // names of the columns index is important because cells use this indexing
     //this will contain the b tree for searching elements
@@ -70,7 +68,7 @@ pub enum Types {
 }
 pub type Row = Vec<Types>;
 
-fn get_table(name: &String) -> Result<File, std::io::Error> {
+fn get_table(name: &str) -> Result<File, std::io::Error> {
     OpenOptions::new().write(true).read(true).open(name)
 }
 
@@ -82,7 +80,7 @@ pub fn add_column(name: &String, data: Row) -> Result<(), ()> {
     return Err(());
 }
 
-pub fn create_table(name: &String, columns: &Vec<String>) -> Result<(), String> {
+pub fn create_table(name: &str, columns: &Vec<String>) -> Result<(), String> {
     if Path::new(name).exists() == true {
         return Err("Table already exists".to_string());
     }
@@ -98,6 +96,9 @@ pub fn create_table(name: &String, columns: &Vec<String>) -> Result<(), String> 
     let mut offset = 0usize;
     for s in columns {
         let b = s.as_bytes();
+        if offset + b.len() + 1 > PAGE {
+            return Err("Table metadata does not fit into the first page".to_string());
+        }
         buffer[offset..offset + b.len()].copy_from_slice(b);
         offset += b.len();
         buffer[offset] = b'\n';
@@ -109,8 +110,55 @@ pub fn create_table(name: &String, columns: &Vec<String>) -> Result<(), String> 
             println!("Table created succsessfuly");
         }
         Err(val) => {
-            println!("Failed to write to a file: {}", val);
+            return Err(format!("Failed to write to a file: {}", val));
         }
     }
     return Ok(());
+}
+
+pub fn open_table(name: &str) -> Result<Table, String> {
+    let mut file = get_table(name).map_err(|err| err.to_string())?;
+    let mut buffer: [u8; PAGE] = [0; PAGE];
+    file.read_exact(&mut buffer).map_err(|err| err.to_string())?;
+
+    let metadata_end = buffer.iter().position(|&byte| byte == 0).unwrap_or(PAGE);
+    let metadata = &buffer[..metadata_end];
+
+    let mut rows = Vec::new();
+    for line in metadata.split(|&byte| byte == b'\n') {
+        if line.is_empty() {
+            continue;
+        }
+        let value = std::str::from_utf8(line)
+            .map_err(|err| err.to_string())?
+            .to_string();
+        rows.push(value);
+    }
+
+    Ok(Table {
+        name: name.to_string(),
+        rows: rows,
+        free_page: 1,
+    })
+}
+
+impl Table {
+    pub fn formatted_metadata(&self) -> String {
+        let mut output = String::new();
+        output.push_str("Table metadata\n");
+        output.push_str("==============\n");
+        output.push_str(&format!("name: {}\n", self.name));
+        output.push_str(&format!("free_page: {}\n", self.free_page));
+        output.push_str("columns:\n");
+
+        if self.rows.is_empty() {
+            output.push_str("  (none)\n");
+        } else {
+            for (idx, column) in self.rows.iter().enumerate() {
+                output.push_str(&format!("  {}. {}\n", idx + 1, column));
+            }
+        }
+
+        output
+    }
 }

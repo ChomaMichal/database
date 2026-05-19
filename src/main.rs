@@ -1,36 +1,50 @@
-//use rand::prelude::*;
-//use std::env;
-//use std::fs::File;
-//use std::fs::OpenOptions;
-//use std::os::unix::fs::FileExt;
+use std::env;
+
 pub mod btree;
 #[cfg(test)]
 mod btree_tests;
-use btree::BTree;
+pub mod table;
+
+fn print_usage(bin_name: &str) {
+    eprintln!("Usage:");
+    eprintln!("  {} create <table_file> <column> [column...]", bin_name);
+    eprintln!("  {} metadata <table_file>", bin_name);
+}
 
 fn main() {
-    //    let mut rng = rand::rng();
-    let mut btree = BTree::<u32>::new();
-    let mut arr: Vec<u32> = Vec::<u32>::new();
-    for i in 0..11 {
-        let tmp: u32 = i; // rng.random();
+    let args: Vec<String> = env::args().collect();
+    let bin_name = args.first().map(String::as_str).unwrap_or("database");
 
-        arr.push(tmp);
-        btree.insert(tmp);
-        println!("{:?}", btree);
-        println!("===============");
-    }
-    // println!("{:?}", btree.elements);
-    // println!("{:?}", btree.pointers);
-    for item in arr.iter_mut() {
-        let res = btree.find(*item);
-        match res {
-            Some(el) => {
-                if el != item {
-                    eprintln!("Found incorrect number {}  != {}", item, el);
+    match args.get(1).map(String::as_str) {
+        Some("create") => {
+            if args.len() < 4 {
+                print_usage(bin_name);
+                return;
+            }
+
+            let table_name = &args[2];
+            let columns = args[3..].to_vec();
+            if let Err(err) = table::create_table(table_name, &columns) {
+                eprintln!("Failed to create table: {}", err);
+            }
+        }
+        Some("metadata") => {
+            if args.len() != 3 {
+                print_usage(bin_name);
+                return;
+            }
+
+            match table::open_table(&args[2]) {
+                Ok(table) => {
+                    println!("{}", table.formatted_metadata());
+                }
+                Err(err) => {
+                    eprintln!("Failed to read metadata: {}", err);
                 }
             }
-            None => eprintln!("Number {} not found", item),
+        }
+        _ => {
+            print_usage(bin_name);
         }
     }
 }
