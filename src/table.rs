@@ -107,7 +107,7 @@ pub fn create_table(name: &str, columns: &Vec<String>) -> Result<(), String> {
 
     match file.write_all(&buffer) {
         Ok(()) => {
-            println!("Table created succsessfuly");
+            println!("Table created successfully");
         }
         Err(val) => {
             return Err(format!("Failed to write to a file: {}", val));
@@ -137,7 +137,7 @@ pub fn open_table(name: &str) -> Result<Table, String> {
 
     Ok(Table {
         name: name.to_string(),
-        rows: rows,
+        rows,
         free_page: 1,
     })
 }
