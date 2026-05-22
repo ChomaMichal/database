@@ -63,6 +63,11 @@ fn main() {
         col_type: ColTypes::U64,
     };
     columns.push(col);
+
     let mut tab = table::Table::create_table("./database/hehe".to_owned(), columns)
         .expect("Failed to created database");
+
+    let tab =
+        table::Table::open_table("./database/hehe".to_owned()).expect("Failed to open database");
+    tab.display();
 }

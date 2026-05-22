@@ -55,7 +55,7 @@ pub enum PageType {
 }
 
 //first page always contains metadata ther will be pointerst to all columns and indexes
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 #[repr(u8)]
 enum MetaDataTypes {
     End = 0,    //metadata ended
@@ -94,6 +94,17 @@ pub struct Table {
     columns: Vec<Column>,
 }
 
+fn col_type_to_str(tp: &ColTypes) -> String {
+    match tp {
+        ColTypes::Empty => "Empty".to_owned(),
+        ColTypes::I32 => "i32".to_owned(),
+        ColTypes::U32 => "u32".to_owned(),
+        ColTypes::I64 => "i64".to_owned(),
+        ColTypes::U64 => "u64".to_owned(),
+        ColTypes::String => "String".to_owned(),
+    }
+}
+
 impl Table {
     fn new(file: File) -> Self {
         Self {
@@ -103,6 +114,17 @@ impl Table {
         }
     }
 
+    pub fn display(&self) {
+        print!("|");
+        for it in self.columns.iter() {
+            print!(" {} |", it.name);
+        }
+        println!("");
+        print!("|");
+        for it in self.columns.iter() {
+            print!(" {} |", col_type_to_str(&it.col_type));
+        }
+    }
     //call before returning new table
     fn init_metadata(&mut self) -> Option<()> {
         let mut buf = [0u8; PAGE];
@@ -142,6 +164,7 @@ impl Table {
         }
         serialize_metadata_end(&mut buf, &mut index);
         self.file.write_to_page(current_page, &mut buf).unwrap();
+        println!("after serialization: {:?}", buf[0..100].to_owned());
         return Some(());
     }
 
@@ -154,6 +177,7 @@ impl Table {
         assert!(tmp == PageType::MetaData as u8);
         loop {
             let htype = u8to_metadatatype(deserialize_u8(&mut buf, &mut index));
+            println!(" metadataType u8 = {}", htype.clone() as u8);
             match htype {
                 MetaDataTypes::End => break,
                 MetaDataTypes::Column => {
@@ -207,6 +231,9 @@ impl Table {
 fn serialize_string(buf: &mut [u8], index: &mut usize, string: &String) {
     let len = string.as_bytes().len() as u32;
     buf[*index..*index + 4].copy_from_slice(&len.to_le_bytes()); //len of the string (u32)
+    println!("serialize string");
+    println!("  len: {}", len);
+    println!("  string: {}", string);
     *index += 4;
     buf[*index..*index + len as usize].copy_from_slice(string.as_bytes()); //string
     *index += len as usize;
@@ -223,12 +250,16 @@ fn serialize_u64(buf: &mut [u8], index: &mut usize, el: u64) {
 }
 
 fn deserialize_string(buf: &mut [u8], index: &mut usize) -> String {
+    println!("deserialize string");
     let len_bytes: [u8; 4] = buf[*index..*index + 4].try_into().unwrap();
     let len = u32::from_le_bytes(len_bytes) as usize;
+    println!(" deserialized string len: {}", len);
     *index += 4;
     let s = std::str::from_utf8(&buf[*index..*index + len])
         .expect("invalid utf-8 in deserialize_string")
         .to_string();
+    println!(" deserialized string: {}", s);
+    println!("  slice: {:?}", &buf[*index - 4..*index + len]);
     *index += len;
     s
 }
@@ -282,17 +313,12 @@ fn deserialize_metadata_next_page(buf: &mut [u8], index: &mut usize) -> u64 {
 }
 
 fn serialize_metadata_index(buf: &mut [u8], index: &mut usize, i: &Indexing) {
-    let len = i.name.as_bytes().len() + 13;
     serialize_u8(buf, index, MetaDataTypes::Index as u8); //type of metadata
-    serialize_u64(buf, index, len as u64); //len of index metadata
-    serialize_u64(buf, index, i.name.as_bytes().len() as u64); //len of
-    //string
     serialize_string(buf, index, &i.name); // string
     serialize_u64(buf, index, i.page_index as u64); //head of index
 }
 
 fn deserialize_metadata_index(buf: &mut [u8], index: &mut usize) -> Indexing {
-    let _ = deserialize_u64(buf, index); // deserializing len of index in metadata
     let string = deserialize_string(buf, index);
     let page_index = deserialize_u64(buf, index);
     Indexing {
@@ -301,19 +327,20 @@ fn deserialize_metadata_index(buf: &mut [u8], index: &mut usize) -> Indexing {
     }
 }
 fn serialize_metadata_column(buf: &mut [u8], index: &mut usize, column: &Column) {
-    let len = column.name.as_bytes().len() + 13;
     serialize_u8(buf, index, MetaDataTypes::Column as u8); //type of metadata
-    serialize_u64(buf, index, len as u64); //len of index metadata
-    serialize_u64(buf, index, column.name.as_bytes().len() as u64); //len of
     //string
     serialize_string(buf, index, &column.name); // string
     serialize_u8(buf, index, column.col_type.clone() as u8); //head of index
 }
 
 fn deserialize_metadata_column(buf: &mut [u8], index: &mut usize) -> Column {
-    let _ = deserialize_u64(buf, index); // deserializing len of index in metadata
+    // let _ = deserialize_u64(buf, index); // deserializing len of index in metadata
     let string = deserialize_string(buf, index);
     let col_type = deserialize_u8(buf, index);
+    println!(
+        "deserialized column name: |{}|\n col_type u8: {}",
+        string, col_type,
+    );
     Column {
         name: string,
         col_type: u8to_coltype(col_type),
