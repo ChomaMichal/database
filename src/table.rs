@@ -2,17 +2,8 @@ use bincode;
 use bincode::de;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-#[path = "disc/disc.rs"]
-pub mod disc;
-use disc::Disc;
-use std::f32::consts::TAU;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io;
-use std::io::prelude::*;
-use std::ops::Index;
-use std::os::unix::fs::FileExt;
-use std::path::Path;
+pub mod file;
+use file::File;
 
 pub const PAGE: usize = 8096;
 /* create table system.
@@ -38,7 +29,7 @@ pub const PAGE: usize = 8096;
 */
 
 #[derive(Serialize, Deserialize)]
-struct DiscString {
+struct FileString {
     next: Option<u64>, //where the string might continue
     string: String,    // the string
 }
@@ -81,9 +72,9 @@ struct Indexing {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Column {
-    col_type: ColTypes,
-    name: String,
+pub struct Column {
+    pub col_type: ColTypes,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -97,16 +88,16 @@ struct PageHeader {
     page_type: PageType,
 }
 
-struct Table {
-    disc: Disc,
+pub struct Table {
+    file: File,
     indexes: Vec<Indexing>,
     columns: Vec<Column>,
 }
 
 impl Table {
-    fn new(disc: Disc) -> Self {
+    fn new(file: File) -> Self {
         Self {
-            disc: disc,
+            file,
             indexes: vec![],
             columns: vec![],
         }
@@ -117,7 +108,7 @@ impl Table {
         let mut buf = [0u8; PAGE];
         let mut index = 0;
         let mut current_page = 0;
-        self.disc.new_page();
+        self.file.new_page();
         buf[0] = PageType::MetaData as u8;
         index += 1;
         for it in self.columns.iter() {
@@ -126,9 +117,9 @@ impl Table {
             if index + len + 9 > PAGE {
                 // i think it should be + 5 becasue one of type4 of the
                 // index
-                let new_page = self.disc.new_page().unwrap();
+                let new_page = self.file.new_page().unwrap();
                 serialize_metadata_next_page(&mut buf, &mut index, new_page);
-                self.disc.write_to_page(current_page, &mut buf).unwrap();
+                self.file.write_to_page(current_page, &mut buf).unwrap();
                 index = 0;
                 current_page = new_page;
             }
@@ -141,16 +132,16 @@ impl Table {
             if index + len + 9 > PAGE {
                 // i think it should be + 5 becasue one of type4 of the
                 // index
-                let new_page = self.disc.new_page().unwrap();
+                let new_page = self.file.new_page().unwrap();
                 serialize_metadata_next_page(&mut buf, &mut index, new_page);
-                self.disc.write_to_page(current_page, &mut buf).unwrap();
+                self.file.write_to_page(current_page, &mut buf).unwrap();
                 index = 0;
                 current_page = new_page;
             }
             serialize_metadata_index(&mut buf, &mut index, it);
         }
         serialize_metadata_end(&mut buf, &mut index);
-        self.disc.write_to_page(current_page, &mut buf).unwrap();
+        self.file.write_to_page(current_page, &mut buf).unwrap();
         return Some(());
     }
 
@@ -158,7 +149,7 @@ impl Table {
         let mut buf = [0u8; PAGE];
         let mut index = 0;
         let mut current_page = 0;
-        self.disc.get_page(0, &mut buf);
+        self.file.get_page(0, &mut buf);
         let tmp = deserialize_u8(&mut buf, &mut index);
         assert!(tmp == PageType::MetaData as u8);
         loop {
@@ -174,7 +165,7 @@ impl Table {
                         .push(deserialize_metadata_index(&mut buf, &mut index));
                 }
                 MetaDataTypes::NextPage => {
-                    self.disc
+                    self.file
                         .get_page(
                             deserialize_metadata_next_page(&mut buf, &mut index) as usize,
                             &mut buf,
@@ -187,7 +178,7 @@ impl Table {
     }
 
     pub fn open_table(name: String) -> Option<Self> {
-        let dsc = match Disc::open_disc(&name) {
+        let dsc = match File::open_file(&name) {
             Ok(tmp) => tmp,
             Err(_) => return None,
         };
@@ -196,17 +187,17 @@ impl Table {
     }
 
     pub fn create_table(name: String, columns: Vec<Column>) -> Option<Self> {
-        let dsc = match Disc::create_disc(&name) {
+        let dsc = match File::create_file(&name) {
             Some(tmp) => tmp,
             None => return None,
         };
         let mut table = Table {
-            disc: dsc,
+            file: dsc,
             columns: columns,
             indexes: vec![],
         };
         if table.init_metadata().is_none() {
-            Disc::delete_discs(&name);
+            File::delete_files(&name);
             return None;
         }
         return Some(table);
