@@ -8,3 +8,21 @@ todo
 important concepts B-tree spesific version of binary tree read up on this later
 
 stuff might not fit in ram you need to do operation on disk
+
+
+
+structure 
+
+    we have fixed size array for chaced pages
+        when we want to chace a new page we iterate throu it and see if it is chaced if yes 
+            we return index to the array of chached pages
+            
+            if it is not there we look for empty space if there is no empty space we go and search 
+                for chaced place which least amount of derefs
+            
+                the one that leaves will be flushed to the disc
+
+    
+        for each deref we check if the index and files are the same as the one that is being chached
+            if it is not ther we loop thoru the array and fetch it from the disc
+

@@ -2,7 +2,9 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io;
 use std::io::prelude::*;
+use std::ops::Deref;
 use std::os::unix::fs::FileExt;
+use std::os::unix::io::AsRawFd;
 use std::path::Path;
 
 use super::PAGE;
@@ -91,7 +93,13 @@ impl File {
         self.inner.write(buf)
     }
 
-    pub fn delete_files(name: &String) {
-        fs::remove_file(name);
+    pub fn delete_files(name: &String) -> Result<(), std::io::Error> {
+        fs::remove_file(name)
+    }
+}
+
+impl PartialEq for File {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.as_raw_fd() == other.inner.as_raw_fd()
     }
 }

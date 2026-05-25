@@ -10,6 +10,7 @@ pub mod btree;
 #[cfg(test)]
 mod btree_tests;
 pub mod table;
+use std::fs;
 use table::ColTypes;
 use table::Column;
 use table::Table;
@@ -43,6 +44,8 @@ fn create_table(args: &[String]) -> Option<()> {
     None
 }
 
+const DATABASE_NAME: &str = "./database/hehe";
+
 fn main() {
     let mut columns: Vec<Column> = vec![];
 
@@ -64,10 +67,10 @@ fn main() {
     };
     columns.push(col);
 
-    let mut tab = table::Table::create_table("./database/hehe".to_owned(), columns)
+    fs::remove_file(DATABASE_NAME);
+    let mut tab = table::Table::create_table(DATABASE_NAME.to_owned(), columns)
         .expect("Failed to created database");
 
-    let tab =
-        table::Table::open_table("./database/hehe".to_owned()).expect("Failed to open database");
+    let tab = table::Table::open_table(DATABASE_NAME.to_owned()).expect("Failed to open database");
     tab.display();
 }
