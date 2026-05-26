@@ -1,7 +1,7 @@
 pub mod file;
 use file::File;
 
-pub const PAGE: usize = 8096;
+pub const PAGE_SIZE: usize = 8096;
 /* create table system.
 * one file is one table
 *
@@ -132,7 +132,7 @@ impl Table {
     }
     //call before returning new table
     fn init_metadata(&mut self) -> Option<()> {
-        let mut buf = [0u8; PAGE];
+        let mut buf = [0u8; PAGE_SIZE];
         let mut index = 0;
         let mut current_page = 0;
         self.file.new_page();
@@ -141,7 +141,7 @@ impl Table {
         for it in self.columns.iter() {
             let len = it.name.as_bytes().len() + 13; // 1 because of the type 4 becasue of the
             // len fo the index 4 because of the len fo the string 4 because of the head of indexand len of the string
-            if index + len + 9 > PAGE {
+            if index + len + 9 > PAGE_SIZE {
                 // i think it should be + 5 becasue one of type4 of the
                 // index
                 let new_page = self.file.new_page().unwrap();
@@ -156,7 +156,7 @@ impl Table {
         for it in self.indexes.iter() {
             let len = it.name.as_bytes().len() + 13; // 1 because of the type 4 becasue of the
             // len fo the index 4 because of the len fo the string 4 because of the head of indexand len of the string
-            if index + len + 9 > PAGE {
+            if index + len + 9 > PAGE_SIZE {
                 // i think it should be + 5 becasue one of type4 of the
                 // index
                 let new_page = self.file.new_page().unwrap();
@@ -174,7 +174,7 @@ impl Table {
     }
 
     fn deserialize_metadata(mut self) -> Self {
-        let mut buf = [0u8; PAGE];
+        let mut buf = [0u8; PAGE_SIZE];
         let mut index = 0;
         let _ = self.file.get_page(0, &mut buf); //check later
         let tmp = deserialize_u8(&mut buf, &mut index);

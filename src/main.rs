@@ -9,6 +9,7 @@ use std::env;
 pub mod btree;
 #[cfg(test)]
 mod btree_tests;
+pub mod page;
 pub mod table;
 use std::fs;
 use table::ColTypes;
