@@ -6,6 +6,7 @@
 pub mod btree;
 #[cfg(test)]
 mod btree_tests;
+mod file_system;
 use btree::BTree;
 
 fn main() {
